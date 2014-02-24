@@ -3,9 +3,32 @@ Mongolia
 
 Mongolia is a wrapper of the pymongo library that lets you work with your mongo objects in a much more pythonic way.
 
+# Connecting to Your Database
+
+Connecting to mongolia is simple:
+```
+from mongolia import connect_to_database, authenticate_connection
+connect_to_database(host="example.com", port="12345")
+authenticate_connection("username", "password")
+
+# If your user is only authorized to access a single database, instead use this
+authenticate_connection("username", "password", db="somedb")
+```
+
+Any further calls to mongolia will use this connection.  If you are using mongolia with flask, this connection setup should go in app.py or in the global scope of a file imported by `app.py`.  If you are using monglia with django, this connection setup should go in `settings.py`.
+
+If you need to add a user to mongo, mongolia provides that functionality as well:
+
+```
+from mongolia import add_user
+add_user("username", "password")
+```
+
+Note that in order to add the first user to a database, you need to be running mongo in unauthenticated mode.  BE VERY CAREFUL WITH THIS.  Make sure to shut down mongo and start in in authenticated mode when your done or else ANYONE IN THE WORLD WILL BE ABLE TO STEAL YOUR DATA.
+
 # DatabaseObject
 
-By extending the python dictionary class, a DatabaseObject lets you interact with the database directly through the items stored in it.  These are simply dictionaries with a few extra methods:
+By extending the python dictionary class, a `DatabaseObject` lets you interact easily with items in your databases.  These are simply dictionaries with a few extra methods:
 
 ```
 from mongolia import DatabaseObject, ID_KEY
@@ -36,11 +59,11 @@ item.rename("different_stuff")
 
 ```
 
-It is worth noting that the ID_KEY of a dictionary (defined by Mongo as "_id") is always a required key of the DatabaseObject (so it will be an error if you try to create a DatabaseObject without either giving it an ID_KEY entry or setting random_id=True).  When updating a DatabaseObject, changing the ID_KEY is also an error (as this is used by mongo to enforce uniqueness); instead, use the "rename" method.
+It is worth noting that the `ID_KEY` of a dictionary (defined by Mongo as `"_id"`) is always a required key of the DatabaseObject (so it will be an error if you try to create a DatabaseObject without either giving it an `ID_KEY` entry or setting `random_id=True`).  When updating a DatabaseObject, changing the `ID_KEY` is also an error (as this is used by mongo to enforce uniqueness); instead, use the `rename` method.
 
 # DatabaseCollection
 
-DatabaseCollection returns a collection as an explicit list of DatabaseObjects.  When using this on larger collections, you can run out of memory, so use filtering or pagination.  Usage looks like this:
+`DatabaseCollection` returns a collection as an explicit list of `DatabaseObjects`.  When using this on larger collections, you can run out of memory; see "Dealing with Large Collections" below.  Standard usage looks like this:
 
 ```
 from mongolia import DatabaseCollection
@@ -71,9 +94,9 @@ coll = DatabaseCollection(path, field="_id")
 
 # Subclasses and ORM
 
-By subclassing DatabaseObject and DatabaseCollection, you can use mongolia as a full-fledged ORM (Object Relatiional Mapping; techinally this may be an OODBMS, but who cares).
+By subclassing `DatabaseObject` and `DatabaseCollection`, you can use mongolia as a full-fledged ORM (Object Relatiional Mapping; techinally this may be an OODBMS, but who cares).
 
-Subclasses of DatabaseObject and DatabaseCollection, db arguments have already been specified and need not be included.  Thus, one could make a User subclass and do the following with it:
+In proper subclasses of `DatabaseObject` and `DatabaseCollection`, `PATH` arguments have already been specified and thus need not be included in intilization.  Consequently, one could make a `User` subclass and do the following with it:
 ```
 class User(DatabaseObject):
     PATH = "somedb.users"
@@ -92,9 +115,9 @@ users = Users(status="active")
 
 ```
 
-Also possibly present in a subclass is a DEFAULTS dictionary.  This is a list of keys that can be assumed to be in the dictionary because when a DatabaseObject is saved or a value is pulled from it, any entry is completed from the DEFAULTS dictionary for that object.  REQUIRED is a special key that indicates that the key in question is required for the object but there is no default.  If a subclass of DatabaseObject is saved without an entry for a REQUIRED key, an error will be thrown.  Note that ID_KEY is implicitly a REQUIRED key of all DatabaseObjects.
+Also possibly present in a subclass is a `DEFAULTS` dictionary.  This is a list of keys that can be assumed to be in the dictionary because when a `DatabaseObject` is saved or a value is pulled from it, any entry is completed from the `DEFAULTS` dictionary for that object.  `REQUIRED` is a special key that indicates that the key in question is required for the object but there is no default.  If a subclass of DatabaseObject is saved without an entry for a `REQUIRED` key, an error will be thrown.  Note that `ID_KEY` is implicitly a `REQUIRED` key of all `DatabaseObjects`.
 
-Values in the DEFAULTS dictionary may be either constants or functions; the differentiation is handled automatically by DatabaseObject.  Best practice when modifying a function in the DEFAULTS dictionary is to go through the collection it is used on and re-save every item (thus applying the new function).  Examples follow:
+Values in the `DEFAULTS` dictionary may be either constants or functions; the differentiation is handled automatically by `DatabaseObject`.  Best practice when modifying a function in the `DEFAULTS` dictionary is to go through the collection it is used on and re-save every item (thus applying the new function).  Examples follow:
 
 ```
 from mongolia import DatabaseObject, ID_KEY, REQUIRED, DatabaseCollection
@@ -128,6 +151,22 @@ class TestObjects(DatabaseCollection):  OBJTYPE = TestObject
 
 # This is the line we have to run to update every object in the collection:
 for test_object in TestObjects(): test_object.save()
+```
+
+You can have mongloia log warnings or even raise exceptions if you want stricter checking of `DEFAULTS`.  This is very useful if you are using `DEFAULTS` to define schemas on your collections and want detect or prevent execution code that is not in line with your schema.
+
+This is done with the following:
+```
+from mongolia import set_defaults_handling, AlertLevel
+
+# This turns off alerts for access of keys not in DEFAULTS; this is the default behavior
+set_defaults_handling(AlertLevel.none)
+
+# This will cause a warning to be logged if a key is set on a DatabaseObject not in its DEFAULTS
+set_defaults_handling(AlertLevel.warning)
+
+# This will cause an exception to be raised if a key is set on a DatabaseObject not in its DEFAULTS
+set_defaults_handling(AlertLevel.error)
 ```
 
 # Dealing with Large Collections

@@ -44,7 +44,7 @@ class MongoConnection(object):
     or authenticates it through authenticate.
     """
     __connection = None
-    default_handling = AlertLevel.warning
+    default_handling = AlertLevel.none
     
     def get_connection(self):
         """ Returns the the current MongoClient,
