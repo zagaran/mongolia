@@ -26,9 +26,6 @@ THE SOFTWARE.
 
 import sys
 
-from distribute_setup import use_setuptools
-use_setuptools()
-
 from setuptools import setup, find_packages
 
 if sys.version < '2.5':
@@ -43,9 +40,9 @@ setup(
     author = "Zagaran, Inc.",
     author_email = "zags at zagaran.com",
     description = "An interface between mongodb and basic python data structures",
-    #license = "PSF",
+    license = "MIT",
     keywords = "mongo mongodb database interface dictionary collection",
-    #url = "http://example.com/HelloWorld/",
+    url = "https://github.com/zagaran/mongolia",
     install_requires = ["pymongo >= 2.4"],
     classifiers = [
                  "Development Status :: 4 - Beta",
