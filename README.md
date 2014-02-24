@@ -3,6 +3,12 @@ Mongolia
 
 Mongolia is a wrapper of the pymongo library that lets you work with your mongo objects in a much more pythonic way.
 
+It can be installed by pip:
+
+```
+pip install mongolia
+```
+
 # Connecting to Your Database
 
 Connecting to mongolia is simple:
