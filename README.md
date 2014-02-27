@@ -159,7 +159,7 @@ class TestObjects(DatabaseCollection):  OBJTYPE = TestObject
 for test_object in TestObjects(): test_object.save()
 ```
 
-You can have mongloia log warnings or even raise exceptions if you want stricter checking of `DEFAULTS`.  This is very useful if you are using `DEFAULTS` to define schemas on your collections and want detect or prevent execution code that is not in line with your schema.
+You can have mongolia log warnings or even raise exceptions if you want stricter checking of `DEFAULTS`.  This is very useful if you are using `DEFAULTS` to define schemas on your collections and want detect or prevent execution code that is not in line with your schema.
 
 This is done with the following:
 ```
