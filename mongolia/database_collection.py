@@ -259,4 +259,4 @@ class DatabaseCollection(list):
         for elt in self:
             DatabaseObject.create(elt, path=new_path)
         for elt in self:
-            elt._collection.remove(elt[ID_KEY])
+            elt._collection.remove({ID_KEY: elt[ID_KEY]})

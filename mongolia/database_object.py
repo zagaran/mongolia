@@ -305,7 +305,7 @@ class DatabaseObject(dict):
         old_id = dict.__getitem__(self, ID_KEY)
         dict.__setitem__(self, ID_KEY, new_id)
         self._collection.save(self)
-        self._collection.remove(old_id)
+        self._collection.remove({ID_KEY: old_id})
     
     def remove(self):
         """
