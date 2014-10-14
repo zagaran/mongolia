@@ -177,7 +177,7 @@ set_defaults_handling(AlertLevel.error)
 
 # Dealing with Large Collections
 
-Mongolia gets good perfomance by loading entire collections into memory at query time.  This is fine until your collections get large.  In this case, to avoid running out of memory, you will want to use mongolia's memory-effient colleciton iterator.  It fetches items in pages to limit memory use, but pages efficiently to keep the iteration linear instead of quadratic in runtime (a problem with pymongo's built-in paging).
+Mongolia gets good perfomance by loading entire collections into memory at query time.  This is fine until your collections get large.  In this case, to avoid running out of memory, you will want to use mongolia's memory-effient collection iterator.  It fetches items in pages to limit memory use, but pages efficiently to keep the iteration linear instead of quadratic in runtime (a problem with pymongo's built-in paging).
 
 ```
 # iterate over users
