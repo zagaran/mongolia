@@ -223,10 +223,16 @@ class DatabaseObject(dict):
             raise KeyError(key)
         try:
             # Try DEFAULTS as a function
-            return cls.DEFAULTS[key]()
+            default = cls.DEFAULTS[key]()
         except TypeError:
             # If it fails, treat DEFAULTS entry as a value
-            return cls.DEFAULTS[key]
+            default = cls.DEFAULTS[key]
+        # If default is a dict or a list, make a copy to avioid passing by reference
+        if isinstance(default, list):
+            default = list(default)
+        if isinstance(default, dict):
+            default = dict(default)
+        return default
     
     def __getitem__(self, name):
         if name == "ID_KEY":
