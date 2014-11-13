@@ -251,7 +251,7 @@ class DatabaseObject(dict):
         if key == ID_KEY or key == "ID_KEY":
             raise KeyError("Do not modify '%s' directly; use rename() instead" % ID_KEY)
         if self.DEFAULTS and key not in self.DEFAULTS:
-            if CONNECTION.defaults_handling == AlertLevel.error:
+            if CONNECTION.default_handling == AlertLevel.error:
                 raise InvalidKeyError("%s not in DEFAULTS for %s" % (key, type(self).__name__))
             elif CONNECTION.default_handling == AlertLevel.warning:
                 log(WARN, "%s not in DEFAULTS for %s" % (key, type(self).__name__))
