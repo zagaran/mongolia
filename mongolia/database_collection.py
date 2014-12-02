@@ -24,6 +24,7 @@ THE SOFTWARE.
 @author: Zags (Benjamin Zagorsky)
 """
 
+import json
 from pymongo import ASCENDING, DESCENDING
 
 from mongolia.constants import ID_KEY, GT
@@ -240,7 +241,13 @@ class DatabaseCollection(list):
         @raise MalformedObjectError: if a REQUIRED key of defaults is missing,
             or if the ID_KEY of the object is None and random_id is False 
         """
-        self.append(self.OBJTYPE.create(data, path=self.PATH, **kwargs))
+        obj = self.OBJTYPE.create(data, path=self.PATH, **kwargs)
+        self.append(obj)
+        return obj
+    
+    def to_json(self):
+        """ Returns the json string of the database object in utf-8 """
+        return json.dumps(self, encoding="utf-8")
     
     def _move(self, new_path):
         """

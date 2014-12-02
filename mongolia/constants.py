@@ -34,6 +34,9 @@ INC = "$inc"
 """ Greater than argument to mongo query """
 GT = "$gt"
 
+""" Set argument for mongo update """
+SET = "$set"
+
 """ Indicates that a key in DatabaseObject.DEFAULTS is required """
 REQUIRED = "__required__"
 

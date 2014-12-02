@@ -24,9 +24,10 @@ THE SOFTWARE.
 @author: Zags (Benjamin Zagorsky)
 """
 
+import json
 from logging import log, WARN
 
-from mongolia.constants import ID_KEY, CHILD_TEMPLATE, REQUIRED, UPDATE
+from mongolia.constants import ID_KEY, CHILD_TEMPLATE, REQUIRED, UPDATE, SET
 from mongolia.errors import (TemplateDatabaseError, MalformedObjectError,
     RequiredKeyError, DatabaseConflictError, InvalidKeyError)
 from mongolia.mongo_connection import CONNECTION, AlertLevel
@@ -217,6 +218,8 @@ class DatabaseObject(dict):
     
     @classmethod
     def _get_from_defaults(cls, key):
+        # If a KeyError is raised here, it is because the key is found in
+        # neither the database object nor the DEFAULTS
         if cls.DEFAULTS[key] == REQUIRED:
             raise RequiredKeyError(key)
         if cls.DEFAULTS[key] == UPDATE:
@@ -227,7 +230,7 @@ class DatabaseObject(dict):
         except TypeError:
             # If it fails, treat DEFAULTS entry as a value
             default = cls.DEFAULTS[key]
-        # If default is a dict or a list, make a copy to avioid passing by reference
+        # If default is a dict or a list, make a copy to avoid passing by reference
         if isinstance(default, list):
             default = list(default)
         if isinstance(default, dict):
@@ -284,7 +287,8 @@ class DatabaseObject(dict):
         WARNING: While the save operation itself is atomic, it is not atomic
         with loads and modifications to the object.  You must provide your own
         synchronization if you have multiple threads or processes possibly
-        modifying the same database object.
+        modifying the same database object.  The update method is better from
+        a concurrency perspective.
         
         @raise MalformedObjectError: if the object does not provide a value
             for a REQUIRED default
@@ -334,3 +338,87 @@ class DatabaseObject(dict):
         data = dict(self)
         data[ID_KEY] = new_id
         self.create(data)
+    
+    def update(self, update_dict=None, **kwargs):
+        """
+        Applies updates both to the database object and to the database via the
+        mongo update method with the $set argument.
+        
+        WARNING: While the update operation itself is atomic, it is not atomic
+        with loads and modifications to the object.  You must provide your own
+        synchronization if you have multiple threads or processes possibly
+        modifying the same database object.  While this is safer from a
+        concurrency perspective than the access pattern load -> modify -> save
+        as it only updates keys specified in the update_dict, it will still
+        overwrite updates to those same keys that were made while the object
+        was held in memory.
+        
+        @param update_dict: dictionary of updates to apply
+        @param **kwargs: used as update_dict if no update_dict is None
+        """
+        if update_dict is None:
+            update_dict = kwargs
+        dict.update(self, update_dict)
+        self.db(self.PATH).update({ID_KEY: self[ID_KEY]}, {SET: update_dict})
+    
+    def to_json(self):
+        """ Returns the json string of the database object in utf-8 """
+        return json.dumps(self, encoding="utf-8")
+    
+    def json_update(self, json_str, exclude=[], ignore_non_defaults=True):
+        """
+        Updates a database object based on a json object.  The intent of this
+        method is to allow passing json to an interface which then subsequently
+        manipulates the object and then sends back an update.
+        
+        Note: if using AngularJS, make sure to pass json back using
+        `angular.toJson(obj)` instead of `JSON.stringify(obj)` since angular
+        sometimes adds `$$hashkey` to javascript objects and this will cause
+        a mongo error due to the "$" prefix in keys.
+        
+        @param json_str: the json string containing the new object to use for
+            the update
+        @param exclude: a list of top-level keys to exclude from the update
+            (ID_KEY need not be included in this list; it is automatically
+            deleted since it can't be part of a mongo update operation)
+        @param ignore_non_defaults: if this is True and the database object
+            has non-empty DEFAULTS, then any top-level keys in the update json
+            that do not appear in DEFAULTS will also be excluded from the update
+        """
+        update_dict = json.loads(json_str, encoding="utf-8")
+        # Remove ID_KEY since it can't be part of a mongo update operation
+        del update_dict[ID_KEY]
+        
+        # Remove all keys in the exclude list from the update
+        for key in frozenset(exclude).intersection(frozenset(update_dict)):
+            del update_dict[key]
+        
+        # Remove all keys not in DEFAULTS if ignore_non_defaults is True
+        if self.DEFAULTS and ignore_non_defaults:
+            for key in frozenset(self.DEFAULTS).intersection(frozenset(update_dict)):
+                del update_dict[key]
+        
+        self.update(update_dict)
+    
+    def json_update_fields(self, json_str, fields_to_update):
+        """
+        Updates the specified fields of a database object based on a json object.
+        The intent of this method is to allow passing json to an interface
+        which then subsequently manipulates the object and then sends back
+        an update for specific fields of the object.
+        
+        Note: if using AngularJS, make sure to pass json back using
+        `angular.toJson(obj)` instead of `JSON.stringify(obj)` since angular
+        sometimes adds `$$hashkey` to javascript objects and this will cause
+        a mongo error due to the "$" prefix in keys.
+        
+        @param json_str: the json string containing the new object to use for
+            the update
+        @param fields_to_update: a list of the top-level keys to update; only
+            keys included in this list will be update.  Do not include ID_KEY
+            in this list since it can't be part of a mongo update operation
+        """
+        update_dict = json.loads(json_str, encoding="utf-8")
+        update_dict = dict((k, v) for k, v in update_dict.items()
+                       if k in fields_to_update)
+        self.update(update_dict)
