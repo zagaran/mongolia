@@ -29,5 +29,5 @@ class TemplateDatabaseError(Exception): pass
 class DatabaseConflictError(Exception): pass
 class RequiredKeyError(Exception): pass
 class InvalidKeyError(Exception): pass
+class InvalidTypeError(Exception): pass
 class DatabaseIsDownError(Exception): pass
-

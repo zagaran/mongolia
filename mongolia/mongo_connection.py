@@ -30,11 +30,16 @@ from mongolia.errors import DatabaseIsDownError
 
 
 class AlertLevel(object):
-    """ Options for the argument of set_defaults_handling """
-    
+    """
+    Options for the arguments of set_defaults_handling or set_type_checking:
+        error: raise an exception
+        warning: logs a warning
+        none: take no extra action
+    """
     error = "error"
     warning = "warning"
     none = None
+
 
 class MongoConnection(object):
     """
@@ -45,6 +50,7 @@ class MongoConnection(object):
     """
     __connection = None
     default_handling = AlertLevel.none
+    type_checking = AlertLevel.none
     
     def get_connection(self):
         """ Returns the the current MongoClient,
@@ -135,6 +141,33 @@ def set_defaults_handling(alert_level):
             and not as strict database schemas.
     """
     CONNECTION.defaults_handling = alert_level
+
+def set_type_checking(alert_level):
+    """
+    When DEFUALTS have been specified for a DatabaseObject and a key that is
+    in DEFAULTS is saved, there are three options for type checking of the
+    stored value against it's default value.  Note: this only works for default
+    values that are of one of the following types: int, float, str, list, dict.
+    If the value for a key in DEFAULTS is REQUIRED, none, or some other type,
+    type checking will be disabled for that key.
+    
+    The exception to this is if a key is one of the special REQUIRED_TYPE
+    variables (such as REQUIRED_INT), in which case the value will be checked
+    against the type specified by the REQURIED_TYPE.
+    
+    NOTE: A key that has a REQUIRED_TYPE will raise an error if the wrong type
+    of data is set for that variable, even if type checking is set to "warning"
+    or "none".
+    
+    @param alert_level: this parameter takes one of three options:
+        AlertLevel.error: raises an InvalidTypeError if the default value of a
+            key is of a different type than the value being set.
+        AlertLevel.warning: logs a warning if the default value for a key is of
+            a different type than the value being set.
+        AlertLevel.none: does nothing if the default value of a key is of a
+            different type than the value being set for that key.
+    """
+    CONNECTION.type_checking = alert_level
 
 def add_user(name, password=None, read_only=None, db=None, **kwargs):
     """

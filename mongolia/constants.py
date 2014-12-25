@@ -37,8 +37,32 @@ GT = "$gt"
 """ Set argument for mongo update """
 SET = "$set"
 
+""" List of types to check for under Connection.type_checking """
+TYPES_TO_CHECK = [basestring, int, float, list, dict]
+
 """ Indicates that a key in DatabaseObject.DEFAULTS is required """
 REQUIRED = "__required__"
+
+""" Special values for keys in DatabaseObject.DEFAULTS that are treated the same
+    as REQUIRED, but are also contain type information for type checking.
+    A key that has a REQUIRED_TYPE will raise an error if the wrong type of
+    data is set for that variable, even if type checking is disabled. """
+REQUIRED_STRING = "__required__string"
+REQUIRED_INT = "__required__int"
+REQUIRED_FLOAT = "__required__float"
+REQUIRED_LIST = "__required__list"
+REQUIRED_DICT = "__required__dict"
+
+REQUIRED_VALUES = [REQUIRED, REQUIRED_STRING, REQUIRED_INT, REQUIRED_FLOAT,
+                   REQUIRED_LIST, REQUIRED_DICT]
+
+REQUIRED_TYPES = {
+    REQUIRED_STRING: basestring,
+    REQUIRED_INT: int,
+    REQUIRED_FLOAT: float,
+    REQUIRED_LIST: list,
+    REQUIRED_DICT: dict,
+}
 
 """ Indicates that a key in DatabaseObject.DEFAULTS is to be used in update
     operations; treated as REQUIRED in current library version """

@@ -27,9 +27,10 @@ THE SOFTWARE.
 import json
 from logging import log, WARN
 
-from mongolia.constants import ID_KEY, CHILD_TEMPLATE, REQUIRED, UPDATE, SET
+from mongolia.constants import (ID_KEY, CHILD_TEMPLATE, UPDATE, SET,
+    REQUIRED_VALUES, REQUIRED_TYPES, TYPES_TO_CHECK)
 from mongolia.errors import (TemplateDatabaseError, MalformedObjectError,
-    RequiredKeyError, DatabaseConflictError, InvalidKeyError)
+    RequiredKeyError, DatabaseConflictError, InvalidKeyError, InvalidTypeError)
 from mongolia.mongo_connection import CONNECTION, AlertLevel
 
 class DatabaseObject(dict):
@@ -216,62 +217,47 @@ class DatabaseObject(dict):
             (db, coll) = cls.PATH.split('.', 1)
         return CONNECTION.get_connection()[db][coll] 
     
-    @classmethod
-    def _get_from_defaults(cls, key):
-        # If a KeyError is raised here, it is because the key is found in
-        # neither the database object nor the DEFAULTS
-        if cls.DEFAULTS[key] == REQUIRED:
-            raise RequiredKeyError(key)
-        if cls.DEFAULTS[key] == UPDATE:
-            raise KeyError(key)
+    def __getitem__(self, key):
+        if key == ID_KEY or key == "ID_KEY":
+            return dict.__getitem__(self, ID_KEY)
+        elif key in self:
+            value = dict.__getitem__(self, key)
+            self._check_type(key, value)
+            return value
         try:
-            # Try DEFAULTS as a function
-            default = cls.DEFAULTS[key]()
-        except TypeError:
-            # If it fails, treat DEFAULTS entry as a value
-            default = cls.DEFAULTS[key]
-        # If default is a dict or a list, make a copy to avoid passing by reference
-        if isinstance(default, list):
-            default = list(default)
-        if isinstance(default, dict):
-            default = dict(default)
-        return default
-    
-    def __getitem__(self, name):
-        if name == "ID_KEY":
-            return self[ID_KEY]
-        if name in self:
-            return dict.__getitem__(self, name)
-        try:
-            new = self._get_from_defaults(name)
+            new = self._get_from_defaults(key)
         except RequiredKeyError:
-            raise MalformedObjectError('"%s" is a required key of %s' %
-                                       (name, type(self).__name__))
-        dict.__setitem__(self, name, new)
+            raise MalformedObjectError("'%s' is a required key of %s" %
+                                       (key, type(self).__name__))
+        dict.__setitem__(self, key, new)
         return new
     
     def __setitem__(self, key, value):
         if key == ID_KEY or key == "ID_KEY":
+            # Do not allow setting ID_KEY directly
             raise KeyError("Do not modify '%s' directly; use rename() instead" % ID_KEY)
+        if not isinstance(key, basestring):
+            raise InvalidKeyError("documents must have only string keys, key was %s" % key)
         if self.DEFAULTS and key not in self.DEFAULTS:
-            if CONNECTION.default_handling == AlertLevel.error:
-                raise InvalidKeyError("%s not in DEFAULTS for %s" % (key, type(self).__name__))
-            elif CONNECTION.default_handling == AlertLevel.warning:
-                log(WARN, "%s not in DEFAULTS for %s" % (key, type(self).__name__))
+            self._handle_non_default_key(key, value)
+        self._check_type(key, value)
         dict.__setitem__(self, key, value)
     
-    def __delitem__(self, name):
-        if name in self:
-            dict.__delitem__(self, name)
+    def __delitem__(self, key):
+        if key == ID_KEY or key == "ID_KEY":
+            # Do not allow deleting ID_KEY
+            raise KeyError("Do not delete '%s' directly; use rename() instead" % ID_KEY)
+        if key in self:
+            dict.__delitem__(self, key)
     
-    def __getattr__(self, name):
-        return self[name]
+    def __getattr__(self, key):
+        return self[key]
     
-    def __setattr__(self, name, val):
-        self[name] = val
+    def __setattr__(self, key, val):
+        self[key] = val
         
-    def __delattr__(self, name):
-        del self[name]
+    def __delattr__(self, key):
+        del self[key]
     
     def __dir__(self):
         return sorted(set(dir(type(self)) + self.keys()))
@@ -329,15 +315,20 @@ class DatabaseObject(dict):
         self._collection.remove({ID_KEY: self[ID_KEY]})
         dict.clear(self)
     
-    def copy(self, new_id):
+    def copy(self, new_id=None):
         """
         Copies the DatabaseObject under the ID_KEY new_id.
         
-        @param new_id: the value for ID_KEY of the copy
+        @param new_id: the value for ID_KEY of the copy; if this is none,
+            creates the new object with a random ID_KEY
         """
         data = dict(self)
-        data[ID_KEY] = new_id
-        self.create(data)
+        if new_id is not None:
+            data[ID_KEY] = new_id
+            return self.create(data)
+        else:
+            del data[ID_KEY]
+            return self.create(data, random_id=True)
     
     def update(self, update_dict=None, **kwargs):
         """
@@ -422,3 +413,55 @@ class DatabaseObject(dict):
         update_dict = dict((k, v) for k, v in update_dict.items()
                        if k in fields_to_update)
         self.update(update_dict)
+    
+    def _get_from_defaults(self, key):
+        # If a KeyError is raised here, it is because the key is found in
+        # neither the database object nor the DEFAULTS
+        if self.DEFAULTS[key] in REQUIRED_VALUES:
+            raise RequiredKeyError(key)
+        if self.DEFAULTS[key] == UPDATE:
+            raise KeyError(key)
+        try:
+            # Try DEFAULTS as a function
+            default = self.DEFAULTS[key]()
+        except TypeError:
+            # If it fails, treat DEFAULTS entry as a value
+            default = self.DEFAULTS[key]
+        # If default is a dict or a list, make a copy to avoid passing by reference
+        if isinstance(default, list):
+            default = list(default)
+        if isinstance(default, dict):
+            default = dict(default)
+        return default
+    
+    def _handle_non_default_key(self, key, value):
+        # There is an attempt to set a key not in DEFAULTS
+        if CONNECTION.default_handling == AlertLevel.error:
+            raise InvalidKeyError("%s not in DEFAULTS for %s" %
+                                  (key, type(self).__name__))
+        elif CONNECTION.default_handling == AlertLevel.warning:
+            log(WARN, "%s not in DEFAULTS for %s" % (key, type(self).__name__))
+    
+    def _check_type(self, key, value):
+        # Check the type of the object against the type in DEFAULTS
+        if not self.DEFAULTS or key not in self.DEFAULTS:
+            return
+        default = self.DEFAULTS[key]
+        if default in REQUIRED_VALUES or default == UPDATE:
+            # Handle special keys, including a REQUIRED_TYPE default
+            if key in REQUIRED_TYPES and not isinstance(value, REQUIRED_TYPES[default]):
+                raise InvalidTypeError("value '%s' for key '%s' must be of type %s" %
+                                       (value, key, REQUIRED_TYPES[default]))
+        if CONNECTION.type_checking == AlertLevel.none:
+            # Shortcut return if type checking is disabled
+            return
+        for type_ in TYPES_TO_CHECK:
+            if isinstance(default, type_) and isinstance(value, type_):
+                return
+            elif isinstance(default, type_) and not isinstance(value, type_):
+                if CONNECTION.type_checking == AlertLevel.error:
+                    raise InvalidTypeError("value '%s' for key '%s' must be of type %s" %
+                                           (value, key, type_))
+                elif CONNECTION.type_checking == AlertLevel.warning:
+                    log(WARN, "value '%s' for key '%s' must be of type %s" %
+                       (value, key, type_))

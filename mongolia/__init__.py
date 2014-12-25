@@ -25,7 +25,7 @@ THE SOFTWARE.
 """
 
 from mongolia.mongo_connection import (connect_to_database, authenticate_connection,
-    set_defaults_handling, AlertLevel, add_user, list_database)
+    set_defaults_handling, AlertLevel, add_user, list_database, set_type_checking)
 from mongolia.constants import ID_KEY, REQUIRED, UPDATE, CHILD_TEMPLATE
 from mongolia.database_object import DatabaseObject
 from mongolia.database_collection import DatabaseCollection
@@ -34,6 +34,7 @@ __all__ = (
            "connect_to_database",
            "authenticate_connection",
            "set_defaults_handling",
+           "set_type_checking",
            "add_user",
            "list_database",
            "AlertLevel",
