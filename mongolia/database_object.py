@@ -378,7 +378,8 @@ class DatabaseObject(dict):
         """
         update_dict = json.loads(json_str, encoding="utf-8")
         # Remove ID_KEY since it can't be part of a mongo update operation
-        del update_dict[ID_KEY]
+        if ID_KEY in update_dict:
+            del update_dict[ID_KEY]
         
         # Remove all keys in the exclude list from the update
         for key in frozenset(exclude).intersection(frozenset(update_dict)):
@@ -411,7 +412,7 @@ class DatabaseObject(dict):
         """
         update_dict = json.loads(json_str, encoding="utf-8")
         update_dict = dict((k, v) for k, v in update_dict.items()
-                       if k in fields_to_update)
+                       if k in fields_to_update and k != ID_KEY)
         self.update(update_dict)
     
     def _get_from_defaults(self, key):

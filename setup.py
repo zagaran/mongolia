@@ -34,7 +34,7 @@ if sys.version < '2.5':
 
 setup(
     name = "mongolia",
-    version = "0.3.0",
+    version = "0.3.1",
     packages = find_packages(),
     
     author = "Zagaran, Inc.",
@@ -46,7 +46,7 @@ setup(
     install_requires = ["pymongo >= 2.4"],
     classifiers = [
                  "Development Status :: 4 - Beta",
-                 "License :: OSI Approved :: Apache Software License",
+                 "License :: OSI Approved :: MIT License",
                  "Operating System :: MacOS :: MacOS X",
                  "Operating System :: Microsoft :: Windows",
                  "Operating System :: POSIX",
