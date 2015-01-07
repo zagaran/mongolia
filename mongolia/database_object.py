@@ -387,7 +387,7 @@ class DatabaseObject(dict):
         
         # Remove all keys not in DEFAULTS if ignore_non_defaults is True
         if self.DEFAULTS and ignore_non_defaults:
-            for key in frozenset(self.DEFAULTS).intersection(frozenset(update_dict)):
+            for key in frozenset(update_dict).difference(frozenset(self.DEFAULTS)):
                 del update_dict[key]
         
         self.update(update_dict)
