@@ -183,10 +183,16 @@ class DatabaseObject(dict):
             or if the ID_KEY of the object is None and random_id is False
         """
         self = cls(path=path, defaults=defaults, _new_object=data)
+        for key, value in self.items():
+            if key == ID_KEY:
+                continue
+            if self.DEFAULTS and key not in self.DEFAULTS:
+                self._handle_non_default_key(key, value)
+            self._check_type(key, value)
         if random_id and ID_KEY in self:
             dict.__delitem__(self, ID_KEY)
         if not random_id and ID_KEY not in self:
-            raise MalformedObjectError("No " + ID_KEY + " key in item") 
+            raise MalformedObjectError("No " + ID_KEY + " key in item")
         if not random_id and not overwrite and self._collection.find_one({ID_KEY: data[ID_KEY]}):
             raise DatabaseConflictError('ID_KEY "%s" already exists in collection %s' %
                                         (data[ID_KEY], self.PATH))
