@@ -443,10 +443,10 @@ class DatabaseObject(dict):
     
     def _handle_non_default_key(self, key, value):
         # There is an attempt to set a key not in DEFAULTS
-        if CONNECTION.default_handling == AlertLevel.error:
+        if CONNECTION.defaults_handling == AlertLevel.error:
             raise InvalidKeyError("%s not in DEFAULTS for %s" %
                                   (key, type(self).__name__))
-        elif CONNECTION.default_handling == AlertLevel.warning:
+        elif CONNECTION.defaults_handling == AlertLevel.warning:
             log(WARN, "%s not in DEFAULTS for %s" % (key, type(self).__name__))
     
     def _check_type(self, key, value):
