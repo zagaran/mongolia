@@ -194,6 +194,20 @@ def add_user(name, password=None, read_only=None, db=None, **kwargs):
     """
     return CONNECTION.add_user(name, password=password, read_only=read_only, db=db, **kwargs)
 
+def add_superuser(name, password, **kwargs):
+    """
+    Adds a user with userAdminAnyDatabase role to mongo.
+    
+    @param name: the name of the user to create
+    @param passowrd: the password of the user to create. Can not be used with
+        the userSource argument.
+    @param **kwargs: forwarded to pymongo.database.add_user
+    """
+    return CONNECTION.add_user(
+            name, password=password,
+            roles=["userAdminAnyDatabase", "root", "backup", "restore"], **kwargs
+    )
+
 def list_database(db=None):
     """
     Lists the names of either the databases on the machine or the collections
