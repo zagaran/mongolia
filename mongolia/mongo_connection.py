@@ -123,7 +123,7 @@ def authenticate_connection(username, password, db=None):
     """
     return CONNECTION.authenticate(username, password, db=db)
 
-def set_defaults_handling(alert_level):
+def set_default_handling(alert_level):
     """
     When DEFAULTS have been specified for a DatabaseObject and a key not in
     the specified DEFAULTS is modified, there are three options, detailed below.
@@ -140,7 +140,7 @@ def set_defaults_handling(alert_level):
             option if you are just using DEFAULTS to populate default values
             and not as strict database schemas.
     """
-    CONNECTION.defaults_handling = alert_level
+    CONNECTION.default_handling = alert_level
 
 def set_type_checking(alert_level):
     """
