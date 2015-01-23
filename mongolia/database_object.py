@@ -459,6 +459,7 @@ class DatabaseObject(dict):
             if key in REQUIRED_TYPES and not isinstance(value, REQUIRED_TYPES[default]):
                 raise InvalidTypeError("value '%s' for key '%s' must be of type %s" %
                                        (value, key, REQUIRED_TYPES[default]))
+            return
         if CONNECTION.type_checking == AlertLevel.none:
             # Shortcut return if type checking is disabled
             return
