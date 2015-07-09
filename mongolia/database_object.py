@@ -30,11 +30,12 @@ from logging import log, WARN
 from mongolia.constants import (ID_KEY, CHILD_TEMPLATE, UPDATE, SET,
     REQUIRED_VALUES, REQUIRED_TYPES, TYPES_TO_CHECK)
 from mongolia.errors import (TemplateDatabaseError, MalformedObjectError,
-    RequiredKeyError, DatabaseConflictError, InvalidKeyError, InvalidTypeError)
+    RequiredKeyError, DatabaseConflictError, InvalidKeyError, InvalidTypeError,
+    NonexistentObjectError)
 from mongolia.mongo_connection import CONNECTION, AlertLevel
 
 class DatabaseObject(dict):
-    """ 
+    """
     Represent a MongoDB object as a Python dictionary.
         
     PATH is the database path in the form "database.collection"; children
@@ -76,6 +77,7 @@ class DatabaseObject(dict):
     """
     PATH = None
     DEFAULTS = {}
+    _exists = True
     
     def __init__(self, query=None, path=None, defaults=None, _new_object=False, **kwargs):
         """
@@ -95,8 +97,8 @@ class DatabaseObject(dict):
         @param query: a dictionary specifying key-value pairs that the result
             must match.  If query is None, use kwargs in it's place
         @param path: the path of the database to query, in the form
-            "database.colletion"; pass None to use the value of the 
-            PATH property of the object 
+            "database.colletion"; pass None to use the value of the
+            PATH property of the object
         @param defaults: the defaults dictionary to use for this object;
             pass None to use the DEFAULTS property of the object
         @param _new_object: internal use only
@@ -120,11 +122,13 @@ class DatabaseObject(dict):
             dict.__init__(self, _new_object)
             return
         if query is None and len(kwargs) > 0:
-            query=kwargs
+            query = kwargs
         if query is not None:
             data = self.db(path).find_one(query)
             if data is not None:
                 dict.__init__(self, data)
+                return
+        dict.__setattr__(self, "_exists", False)
     
     @classmethod
     def exists(cls, query=None, path=None, **kwargs):
@@ -138,7 +142,7 @@ class DatabaseObject(dict):
         @param query: a dictionary specifying key-value pairs that the result
             must match.  If query is None, use kwargs in it's place
         @param path: the path of the database to query, in the form
-            "database.colletion"; pass None to use the value of the 
+            "database.colletion"; pass None to use the value of the
             PATH property of the object
         @param **kwargs: used as query parameters if query is None
         
@@ -146,7 +150,7 @@ class DatabaseObject(dict):
             must be defined in at least one of these
         """
         if query is None and len(kwargs) > 0:
-            query=kwargs
+            query = kwargs
         if query is None:
             return False
         return cls.db(path).find_one(query) is not None
@@ -202,7 +206,7 @@ class DatabaseObject(dict):
     @classmethod
     def db(cls, path=None):
         """
-        Returns a pymongo Collection object from the current database connection 
+        Returns a pymongo Collection object from the current database connection
         
         @param path: if is None, the PATH attribute of the current class is used;
             if is not None, this is used instead
@@ -221,9 +225,11 @@ class DatabaseObject(dict):
                 raise Exception(('invalid path "%s"; database paths must be ' +
                                  'of the form "database.collection"') % (cls.PATH,))
             (db, coll) = cls.PATH.split('.', 1)
-        return CONNECTION.get_connection()[db][coll] 
+        return CONNECTION.get_connection()[db][coll]
     
     def __getitem__(self, key):
+        if not self._exists:
+            raise NonexistentObjectError("The object does not exist")
         if key == ID_KEY or key == "ID_KEY":
             return dict.__getitem__(self, ID_KEY)
         elif key in self:
@@ -239,6 +245,8 @@ class DatabaseObject(dict):
         return new
     
     def __setitem__(self, key, value):
+        if not self._exists:
+            raise NonexistentObjectError("The object does not exist")
         if key == ID_KEY or key == "ID_KEY":
             # Do not allow setting ID_KEY directly
             raise KeyError("Do not modify '%s' directly; use rename() instead" % ID_KEY)
@@ -250,6 +258,8 @@ class DatabaseObject(dict):
         dict.__setitem__(self, key, value)
     
     def __delitem__(self, key):
+        if not self._exists:
+            raise NonexistentObjectError("The object does not exist")
         if key == ID_KEY or key == "ID_KEY":
             # Do not allow deleting ID_KEY
             raise KeyError("Do not delete '%s' directly; use rename() instead" % ID_KEY)
@@ -285,10 +295,14 @@ class DatabaseObject(dict):
         @raise MalformedObjectError: if the object does not provide a value
             for a REQUIRED default
         """
-        # Fill in missing defaults by invoking __getitem__ for each key in DEFAULTS 
+        if not self._exists:
+            raise NonexistentObjectError("The object does not exist")
+        # Fill in missing defaults by invoking __getitem__ for each key in DEFAULTS
         for key in self.DEFAULTS:
-            try: self[key]
-            except KeyError: pass
+            try:
+                self[key]
+            except KeyError:
+                pass
         new_id = self._collection.save(dict(self))
         dict.__setitem__(self, ID_KEY, new_id)
     
@@ -302,7 +316,7 @@ class DatabaseObject(dict):
         
         NOTE: This is actually a create and delete.
         
-        WARNING: If the system fails during a rename, data may be duplicated. 
+        WARNING: If the system fails during a rename, data may be duplicated.
         """
         old_id = dict.__getitem__(self, ID_KEY)
         dict.__setitem__(self, ID_KEY, new_id)

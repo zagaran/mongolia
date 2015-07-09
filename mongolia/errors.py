@@ -31,3 +31,4 @@ class RequiredKeyError(Exception): pass
 class InvalidKeyError(Exception): pass
 class InvalidTypeError(Exception): pass
 class DatabaseIsDownError(Exception): pass
+class NonexistentObjectError(Exception): pass
