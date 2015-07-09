@@ -369,6 +369,8 @@ class DatabaseObject(dict):
         """
         if update_dict is None:
             update_dict = kwargs
+        for key, value in update_dict.items():
+            self._check_type(key, value)
         dict.update(self, update_dict)
         self.db(self.PATH).update({ID_KEY: self[ID_KEY]}, {SET: update_dict})
     
@@ -470,7 +472,7 @@ class DatabaseObject(dict):
         default = self.DEFAULTS[key]
         if default in REQUIRED_VALUES or default == UPDATE:
             # Handle special keys, including a REQUIRED_TYPE default
-            if key in REQUIRED_TYPES and not isinstance(value, REQUIRED_TYPES[default]):
+            if default in REQUIRED_TYPES and not isinstance(value, REQUIRED_TYPES[default]):
                 raise InvalidTypeError("value '%s' for key '%s' must be of type %s" %
                                        (value, key, REQUIRED_TYPES[default]))
             return
