@@ -79,7 +79,7 @@ class DatabaseObject(dict):
     DEFAULTS = {}
     _exists = True
     
-    def __init__(self, query=None, path=None, defaults=None, _new_object=False, **kwargs):
+    def __init__(self, query=None, path=None, defaults=None, _new_object=None, **kwargs):
         """
         Loads a single database object from path matching query.  If nothing
         matches the query (possibly because there is nothing in the specified
@@ -118,7 +118,7 @@ class DatabaseObject(dict):
         if self.PATH == CHILD_TEMPLATE:
             raise TemplateDatabaseError()
         dict.__setattr__(self, "_collection", self.db(self.PATH))
-        if _new_object:
+        if _new_object is not None:
             dict.__init__(self, _new_object)
             return
         if query is None and len(kwargs) > 0:
