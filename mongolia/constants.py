@@ -72,3 +72,6 @@ UPDATE = "__update__"
     not meant to be used as database accessors themselves, but rather extract
     common functionality used by DatabaseObjects of various collections"""
 CHILD_TEMPLATE = "CHILD_TEMPLATE"
+
+""" Name of the database used in test mode """
+TEST_DATABASE_NAME = "__MONGOLIA_TEST_DATABASE__"

@@ -27,6 +27,7 @@ THE SOFTWARE.
 from pymongo import MongoClient
 from pymongo.errors import AutoReconnect, ConnectionFailure
 from mongolia.errors import DatabaseIsDownError
+from mongolia.constants import TEST_DATABASE_NAME
 
 
 class AlertLevel(object):
@@ -51,6 +52,7 @@ class MongoConnection(object):
     __connection = None
     defaults_handling = AlertLevel.none
     type_checking = AlertLevel.none
+    test_mode = False
     
     def get_connection(self):
         """ Returns the the current MongoClient,
@@ -81,6 +83,10 @@ class MongoConnection(object):
                     name, password=password, read_only=read_only, **kwargs)
         return self.get_connection()[db].add_user(
                     name, password=password, read_only=read_only, **kwargs)
+    
+    def set_test_mode(self, test_mode=True):
+        """ Sets mongolia to use a test database instead of the actual database """
+        self.test_mode = test_mode
 
 # TODO: allow multiple simultaneous connections
 CONNECTION = MongoConnection()
@@ -220,3 +226,27 @@ def list_database(db=None):
     if db is None:
         return CONNECTION.get_connection().database_names()
     return CONNECTION.get_connection()[db].collection_names()
+
+
+def set_test_mode(test_mode=True):
+    """
+    Sets test mode in which mongolia saves all objects to a temporary database
+    called __MONGOLIA_TEST_DATABASE__.
+    
+    @param test_mode: set True to enable test mode and False to disable it
+    
+    WARNING: Make sure nothing is in the mongo database __MONGOLIA_TEST_DATABASE__
+    as this database gets dropped frequently.
+    
+    WARNING: Do not enable test mode in production code.  This will cause your
+    data to be stored in the test database.
+    """
+    CONNECTION.set_test_mode(test_mode)
+
+def drop_test_database():
+    """
+    Drops the database named __MONGOLIA_TEST_DATABASE__ (which is used while
+    test mode is active).  This should be run at least at the beginning and end
+    of a test suite, if not also between each test.
+    """
+    CONNECTION.get_connection().drop_database(TEST_DATABASE_NAME)

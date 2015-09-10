@@ -28,7 +28,7 @@ import json
 from logging import log, WARN
 
 from mongolia.constants import (ID_KEY, CHILD_TEMPLATE, UPDATE, SET,
-    REQUIRED_VALUES, REQUIRED_TYPES, TYPES_TO_CHECK)
+    REQUIRED_VALUES, REQUIRED_TYPES, TYPES_TO_CHECK, TEST_DATABASE_NAME)
 from mongolia.errors import (TemplateDatabaseError, MalformedObjectError,
     RequiredKeyError, DatabaseConflictError, InvalidKeyError, InvalidTypeError,
     NonexistentObjectError)
@@ -206,25 +206,25 @@ class DatabaseObject(dict):
     @classmethod
     def db(cls, path=None):
         """
-        Returns a pymongo Collection object from the current database connection
+        Returns a pymongo Collection object from the current database connection.
+        If the database connection is in test mode, collection will be in the
+        test database.
         
         @param path: if is None, the PATH attribute of the current class is used;
             if is not None, this is used instead
-            
+        
         @raise Exception: if neither cls.PATH or path are valid
         """
         if cls.PATH is None and path is None:
             raise Exception("No database specified")
-        if path is not None:
-            if "." not in path:
-                raise Exception(('invalid path "%s"; database paths must be ' +
-                                 'of the form "database.collection"') % (path,))
-            (db, coll) = path.split('.', 1)
-        else:
-            if "." not in cls.PATH:
-                raise Exception(('invalid path "%s"; database paths must be ' +
-                                 'of the form "database.collection"') % (cls.PATH,))
-            (db, coll) = cls.PATH.split('.', 1)
+        if path is None:
+            path = cls.PATH
+        if "." not in path:
+            raise Exception(('invalid path "%s"; database paths must be ' +
+                             'of the form "database.collection"') % (path,))
+        if CONNECTION.test_mode:
+            return CONNECTION.get_connection()[TEST_DATABASE_NAME][path]
+        (db, coll) = path.split('.', 1)
         return CONNECTION.get_connection()[db][coll]
     
     def __getitem__(self, key):
