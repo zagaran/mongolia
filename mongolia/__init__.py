@@ -30,6 +30,7 @@ from mongolia.mongo_connection import (connect_to_database, authenticate_connect
 from mongolia.constants import ID_KEY, REQUIRED, UPDATE, CHILD_TEMPLATE
 from mongolia.database_object import DatabaseObject
 from mongolia.database_collection import DatabaseCollection
+from mongolia.testing import MongoliaTestCase
 
 __all__ = (
            "connect_to_database",
@@ -47,5 +48,6 @@ __all__ = (
            "DatabaseObject",
            "DatabaseCollection",
            "set_test_mode",
-           "drop_test_database"
+           "drop_test_database",
+           "MongoliaTestCase"
            )
