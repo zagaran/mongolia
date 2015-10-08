@@ -200,7 +200,12 @@ class DatabaseObject(dict):
         if not random_id and not overwrite and self._collection.find_one({ID_KEY: data[ID_KEY]}):
             raise DatabaseConflictError('ID_KEY "%s" already exists in collection %s' %
                                         (data[ID_KEY], self.PATH))
-        self.save()
+        self._pre_save()
+        if ID_KEY in self and overwrite:
+            self._collection.replace_one({ID_KEY: self[ID_KEY]}, dict(self), upsert=True)
+        else:
+            insert_result = self._collection.insert_one(dict(self))
+            dict.__setitem__(self, ID_KEY, insert_result.inserted_id)
         return self
     
     @classmethod
@@ -278,6 +283,16 @@ class DatabaseObject(dict):
     def __dir__(self):
         return sorted(set(dir(type(self)) + self.keys()))
     
+    def _pre_save(self):
+        if not self._exists:
+            raise NonexistentObjectError("The object does not exist")
+        # Fill in missing defaults by invoking __getitem__ for each key in DEFAULTS
+        for key in self.DEFAULTS:
+            try:
+                self[key]
+            except KeyError:
+                pass
+    
     def save(self):
         """
         Saves the current state of the DatabaseObject to the database.  Fills
@@ -295,16 +310,8 @@ class DatabaseObject(dict):
         @raise MalformedObjectError: if the object does not provide a value
             for a REQUIRED default
         """
-        if not self._exists:
-            raise NonexistentObjectError("The object does not exist")
-        # Fill in missing defaults by invoking __getitem__ for each key in DEFAULTS
-        for key in self.DEFAULTS:
-            try:
-                self[key]
-            except KeyError:
-                pass
-        new_id = self._collection.save(dict(self))
-        dict.__setitem__(self, ID_KEY, new_id)
+        self._pre_save()
+        self._collection.replace_one({ID_KEY: self[ID_KEY]}, dict(self))
     
     def rename(self, new_id):
         """
@@ -372,7 +379,7 @@ class DatabaseObject(dict):
         for key, value in update_dict.items():
             self._check_type(key, value)
         dict.update(self, update_dict)
-        self.db(self.PATH).update({ID_KEY: self[ID_KEY]}, {SET: update_dict})
+        self.db(self.PATH).update_one({ID_KEY: self[ID_KEY]}, {SET: update_dict})
     
     def to_json(self):
         """ Returns the json string of the database object in utf-8 """
