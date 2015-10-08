@@ -42,7 +42,7 @@ class DatabaseCollection(list):
     PATH is the database path in the form "database.collection";
         if not None, this overrides the PATH attribute of OBJTYPE;
         if is None, then the PATH attribute of OBJTYPE is used instead;
-        children classes of DatabaseCollection can optionally override this 
+        children classes of DatabaseCollection can optionally override this
         attribute, but defining PATH through OBJTYPE is preferable
     
     
@@ -85,7 +85,7 @@ class DatabaseCollection(list):
         classmethod.
         
         @param path: the path of the database to query, in the form
-            "database.colletion"; pass None to use the value of the 
+            "database.colletion"; pass None to use the value of the
             PATH property of the object or, if that is none, the
             PATH property of OBJTYPE
         @param objtype: the object type to use for these DatabaseObjects;
@@ -151,7 +151,7 @@ class DatabaseCollection(list):
         OBJTYPE or PATH attribute rather than passing them as parameters here.
         
         @param path: the path of the database to query, in the form
-            "database.colletion"; pass None to use the value of the 
+            "database.colletion"; pass None to use the value of the
             PATH property of the object or, if that is none, the
             PATH property of OBJTYPE
         @param objtype: the object type to use for these DatabaseObjects;
@@ -181,8 +181,10 @@ class DatabaseCollection(list):
         
         @param **kwargs: forwarded to cls.__init__
         """
-        try: return cls(page_size=1, ascending=False, **kwargs)[0]
-        except IndexError: return None
+        try:
+            return cls(page_size=1, ascending=False, **kwargs)[0]
+        except IndexError:
+            return None
     
     @classmethod
     def iterator(cls, path=None, objtype=None, query=None, page_size=1000, **kwargs):
@@ -190,7 +192,7 @@ class DatabaseCollection(list):
         Linear time, constant memory, iterator for a mongo collection.
         
         @param path: the path of the database to query, in the form
-            "database.colletion"; pass None to use the value of the 
+            "database.colletion"; pass None to use the value of the
             PATH property of the object or, if that is none, the
             PATH property of OBJTYPE
         @param objtype: the object type to use for these DatabaseObjects;
@@ -239,7 +241,7 @@ class DatabaseCollection(list):
         @raise DatabaseConflictError: if there is already an object with that
             ID_KEY and overwrite == False
         @raise MalformedObjectError: if a REQUIRED key of defaults is missing,
-            or if the ID_KEY of the object is None and random_id is False 
+            or if the ID_KEY of the object is None and random_id is False
         """
         obj = self.OBJTYPE.create(data, path=self.PATH, **kwargs)
         self.append(obj)
@@ -256,7 +258,7 @@ class DatabaseCollection(list):
         NOTE: this function is intended for command prompt use only.
         
         WARNING: if execution is interrupted halfway through, the collection will
-        be split into multiple pieces.  Furthermore, there is a possible 
+        be split into multiple pieces.  Furthermore, there is a possible
         duplication of the database object being processed at the time of
         interruption.
         
