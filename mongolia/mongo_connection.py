@@ -211,7 +211,7 @@ def add_superuser(name, password, **kwargs):
     """
     return CONNECTION.add_user(
             name, password=password,
-            roles=["userAdminAnyDatabase", "root", "backup", "restore"], **kwargs
+            roles=["userAdminAnyDatabase", "readWriteAnyDatabase", "root", "backup", "restore"], **kwargs
     )
 
 def list_database(db=None):
