@@ -239,7 +239,7 @@ class DatabaseObject(dict):
             return dict.__getitem__(self, ID_KEY)
         elif key in self:
             value = dict.__getitem__(self, key)
-            self._check_type(key, value)
+            self._check_type(key, value, warning_only=True)
             return value
         try:
             new = self._get_from_defaults(key)
@@ -472,27 +472,47 @@ class DatabaseObject(dict):
         elif CONNECTION.defaults_handling == AlertLevel.warning:
             log(WARN, "%s not in DEFAULTS for %s" % (key, type(self).__name__))
     
-    def _check_type(self, key, value):
+    def _check_type(self, key, value, warning_only=False):
         # Check the type of the object against the type in DEFAULTS
         if not self.DEFAULTS or key not in self.DEFAULTS:
+            # If the key is not in defaults, there is nothing to compare to
             return
         default = self.DEFAULTS[key]
+        if default in REQUIRED_TYPES.keys() and not isinstance(value, REQUIRED_TYPES[default]):
+            # Check types of required fields regardless of alert settings
+            message = ("value '%s' for key '%s' must be of type %s" %
+                       (value, key, REQUIRED_TYPES[default]))
+            if warning_only:
+                log(WARN, message)
+                return
+            raise InvalidTypeError(message)
         if default in REQUIRED_VALUES or default == UPDATE:
             # Handle special keys, including a REQUIRED_TYPE default
-            if default in REQUIRED_TYPES and not isinstance(value, REQUIRED_TYPES[default]):
-                raise InvalidTypeError("value '%s' for key '%s' must be of type %s" %
-                                       (value, key, REQUIRED_TYPES[default]))
+            # (which was checked above)
             return
+        
         if CONNECTION.type_checking == AlertLevel.none:
             # Shortcut return if type checking is disabled
             return
-        for type_ in TYPES_TO_CHECK:
-            if isinstance(default, type_) and isinstance(value, type_):
+        type_ = DatabaseObject._get_type(default)
+        if type_ is None or isinstance(value, type_):
+            # The key either matches the type of the default or the default is
+            # not one of the types we check; everything is good
+            return
+        # If we've gotten here, there is a type mismatch: warn or error
+        message = ("value '%s' for key '%s' must be of type %s" %
+                   (value, key, type_))
+        if CONNECTION.type_checking == AlertLevel.error:
+            if warning_only:
+                log(WARN, message)
                 return
-            elif isinstance(default, type_) and not isinstance(value, type_):
-                if CONNECTION.type_checking == AlertLevel.error:
-                    raise InvalidTypeError("value '%s' for key '%s' must be of type %s" %
-                                           (value, key, type_))
-                elif CONNECTION.type_checking == AlertLevel.warning:
-                    log(WARN, "value '%s' for key '%s' must be of type %s" %
-                       (value, key, type_))
+            raise InvalidTypeError(message)
+        elif CONNECTION.type_checking == AlertLevel.warning:
+            log(WARN, message)
+    
+    @staticmethod
+    def _get_type(default):
+        for type_ in TYPES_TO_CHECK:
+            if isinstance(default, type_):
+                return type_
+        return None
