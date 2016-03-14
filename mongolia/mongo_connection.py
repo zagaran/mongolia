@@ -61,12 +61,12 @@ class MongoConnection(object):
             self.connect()
         return self.__connection
     
-    def connect(self, host=None, port=None, **kwargs):
+    def connect(self, host=None, port=None, connect=False, **kwargs):
         """ Explicitly creates the MongoClient; this method must be used
             in order to specify a non-default host or port to the MongoClient.
             Takes arguments identical to MongoClient.__init__"""
         try:
-            self.__connection = MongoClient(host=host, port=port, **kwargs)
+            self.__connection = MongoClient(host=host, port=port, connect=connect, **kwargs)
         except (AutoReconnect, ConnectionFailure):
             raise DatabaseIsDownError("No mongod process is running.")
     
@@ -92,7 +92,7 @@ class MongoConnection(object):
 CONNECTION = MongoConnection()
 
 
-def connect_to_database(host=None, port=None, **kwargs):
+def connect_to_database(host=None, port=None, connect=False, **kwargs):
     """
     Explicitly begins a database connection for the application
     (if this function is not called, a connection is created when
@@ -101,8 +101,10 @@ def connect_to_database(host=None, port=None, **kwargs):
     
     @param host: the hostname to connect to
     @param port: the port to connect to
+    @param connect:  if True, immediately begin connecting to MongoDB in the
+        background; otherwise connect on the first operation
     """
-    return CONNECTION.connect(host=host, port=port, **kwargs)
+    return CONNECTION.connect(host=host, port=port, connect=connect, **kwargs)
 
 def authenticate_connection(username, password, db=None):
     """

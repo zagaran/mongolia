@@ -34,7 +34,7 @@ if sys.version < '2.5':
 
 setup(
     name = "mongolia",
-    version = "0.4.5",
+    version = "0.4.6",
     packages = find_packages(),
     
     author = "Zagaran, Inc.",
@@ -43,7 +43,7 @@ setup(
     license = "MIT",
     keywords = "mongo mongodb database interface dictionary collection",
     url = "https://github.com/zagaran/mongolia",
-    install_requires = ["pymongo >= 2.9", "unittest2>=1.1.0"],
+    install_requires = ["pymongo >= 3.0", "unittest2>=1.1.0"],
     classifiers = [
                  "Development Status :: 4 - Beta",
                  "License :: OSI Approved :: MIT License",
