@@ -23,6 +23,8 @@ THE SOFTWARE.
 
 @author: Zags (Benjamin Zagorsky)
 """
+from bson import ObjectId
+from datetime import datetime
 
 """ Special key required by mongo for all DatabaseObjects; uniquely
     identifies DatabaseObjects """
@@ -52,9 +54,11 @@ REQUIRED_INT = "__required__int"
 REQUIRED_FLOAT = "__required__float"
 REQUIRED_LIST = "__required__list"
 REQUIRED_DICT = "__required__dict"
+REQUIRED_DATETIME = "__required__datetime"
+REQUIRED_OBJECTID = "__required__object_id"
 
 REQUIRED_VALUES = [REQUIRED, REQUIRED_STRING, REQUIRED_INT, REQUIRED_FLOAT,
-                   REQUIRED_LIST, REQUIRED_DICT]
+                   REQUIRED_LIST, REQUIRED_DICT, REQUIRED_DATETIME, REQUIRED_OBJECTID]
 
 REQUIRED_TYPES = {
     REQUIRED_STRING: basestring,
@@ -62,6 +66,8 @@ REQUIRED_TYPES = {
     REQUIRED_FLOAT: float,
     REQUIRED_LIST: list,
     REQUIRED_DICT: dict,
+    REQUIRED_DATETIME: datetime,
+    REQUIRED_OBJECTID: ObjectId
 }
 
 """ Indicates that a key in DatabaseObject.DEFAULTS is to be used in update
