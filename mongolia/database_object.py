@@ -24,14 +24,16 @@ THE SOFTWARE.
 @author: Zags (Benjamin Zagorsky)
 """
 
+import collections
 import json
-from logging import log, WARN
 
+from logging import log, WARN
 from mongolia.constants import (ID_KEY, CHILD_TEMPLATE, UPDATE, SET,
     REQUIRED_VALUES, REQUIRED_TYPES, TYPES_TO_CHECK, TEST_DATABASE_NAME)
 from mongolia.errors import (TemplateDatabaseError, MalformedObjectError,
     RequiredKeyError, DatabaseConflictError, InvalidKeyError, InvalidTypeError,
     NonexistentObjectError)
+from mongolia.json_codecs import MongoliaJSONEncoder, MongoliaJSONDecoder
 from mongolia.mongo_connection import CONNECTION, AlertLevel
 
 class DatabaseObject(dict):
@@ -64,7 +66,7 @@ class DatabaseObject(dict):
         }
         
     __getattr__, __setattr__, and __delattr__ have been overridden to behave
-    as item accessers.  This means that you can access elements in the
+    as item accessors.  This means that you can access elements in the
     DatabaseObject by either database_object["key"] or database_object.key;
     database_object["key"] syntax is preferable for use in production code
     since there is no chance of conflicting with any of the methods attached
@@ -84,7 +86,8 @@ class DatabaseObject(dict):
         Loads a single database object from path matching query.  If nothing
         matches the query (possibly because there is nothing in the specified
         mongo collection), the created DatabaseObject will be an empty
-        dictionary and have bool(returned object) == False.
+        dictionary and have bool(returned object) == False.  If more than one
+        database object matches the query, a DatabaseConflictError is thrown.
         
         NOTE: The path and defaults parameters to this function are to allow
         use of the DatabaseObject class directly.  However, this class is
@@ -110,6 +113,10 @@ class DatabaseObject(dict):
             constant is for children classes that are not meant to be
             used as database accessors themselves, but rather extract
             common functionality used by DatabaseObjects of various collections
+        @raise DatabaseConflictError: if PATH is CHILD_TEMPLATE; this
+            constant is for children classes that are not meant to be
+            used as database accessors themselves, but rather extract
+            common functionality used by DatabaseObjects of various collections
         """
         if path:
             dict.__setattr__(self, "PATH", path)
@@ -124,9 +131,14 @@ class DatabaseObject(dict):
         if query is None and len(kwargs) > 0:
             query = kwargs
         if query is not None:
-            data = self.db(path).find_one(query)
-            if data is not None:
-                dict.__init__(self, data)
+            if not isinstance(query, collections.Mapping):
+                query = {ID_KEY: query}
+            cursor = self.db(path).find(query)
+            if cursor.count() > 1:
+                raise DatabaseConflictError(('More than one database object ' +
+                                             'was found for query "%s"') % (query, ))
+            for result in cursor.limit(-1):
+                dict.__init__(self, result)
                 return
         dict.__setattr__(self, "_exists", False)
     
@@ -382,14 +394,24 @@ class DatabaseObject(dict):
         self.db(self.PATH).update_one({ID_KEY: self[ID_KEY]}, {SET: update_dict})
     
     def to_json(self):
-        """ Returns the json string of the database object in utf-8 """
-        return json.dumps(self, encoding="utf-8")
+        """
+        Returns the json string of the database object in utf-8.
+        
+        Note: ObjectId and datetime.datetime objects are custom-serialized
+        using the MongoliaJSONEncoder because they are not natively json-
+        serializable.
+        """
+        return json.dumps(self, cls=MongoliaJSONEncoder, encoding="utf-8")
     
     def json_update(self, json_str, exclude=[], ignore_non_defaults=True):
         """
         Updates a database object based on a json object.  The intent of this
         method is to allow passing json to an interface which then subsequently
         manipulates the object and then sends back an update.
+        
+        Mongolia will also automatically convert any json values that were
+        initially converted from ObjectId and datetime.datetime objects back
+        to their native python object types.
         
         Note: if using AngularJS, make sure to pass json back using
         `angular.toJson(obj)` instead of `JSON.stringify(obj)` since angular
@@ -405,7 +427,7 @@ class DatabaseObject(dict):
             has non-empty DEFAULTS, then any top-level keys in the update json
             that do not appear in DEFAULTS will also be excluded from the update
         """
-        update_dict = json.loads(json_str, encoding="utf-8")
+        update_dict = json.loads(json_str, cls=MongoliaJSONDecoder, encoding="utf-8")
         # Remove ID_KEY since it can't be part of a mongo update operation
         if ID_KEY in update_dict:
             del update_dict[ID_KEY]
@@ -423,10 +445,14 @@ class DatabaseObject(dict):
     
     def json_update_fields(self, json_str, fields_to_update):
         """
-        Updates the specified fields of a database object based on a json object.
-        The intent of this method is to allow passing json to an interface
-        which then subsequently manipulates the object and then sends back
-        an update for specific fields of the object.
+        Updates the specified fields of a database object based on a json
+        object. The intent of this method is to allow passing json to an
+        interface which then subsequently manipulates the object and then sends
+        back an update for specific fields of the object.
+        
+        Mongolia will also automatically convert any json values that were
+        initially converted from ObjectId and datetime.datetime objects back
+        to their native python object types.
         
         Note: if using AngularJS, make sure to pass json back using
         `angular.toJson(obj)` instead of `JSON.stringify(obj)` since angular
@@ -439,7 +465,7 @@ class DatabaseObject(dict):
             keys included in this list will be update.  Do not include ID_KEY
             in this list since it can't be part of a mongo update operation
         """
-        update_dict = json.loads(json_str, encoding="utf-8")
+        update_dict = json.loads(json_str, cls=MongoliaJSONDecoder, encoding="utf-8")
         update_dict = dict((k, v) for k, v in update_dict.items()
                        if k in fields_to_update and k != ID_KEY)
         self.update(update_dict)
@@ -516,3 +542,5 @@ class DatabaseObject(dict):
             if isinstance(default, type_):
                 return type_
         return None
+
+

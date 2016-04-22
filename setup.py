@@ -34,7 +34,7 @@ if sys.version < '2.5':
 
 setup(
     name = "mongolia",
-    version = "0.4.6",
+    version = "0.5.0",
     packages = find_packages(),
     
     author = "Zagaran, Inc.",

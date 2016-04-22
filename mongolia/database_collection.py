@@ -29,6 +29,7 @@ from pymongo import ASCENDING, DESCENDING
 
 from mongolia.constants import ID_KEY, GT
 from mongolia.database_object import DatabaseObject
+from mongolia.json_codecs import MongoliaJSONEncoder
 
 
 class DatabaseCollection(list):
@@ -248,8 +249,14 @@ class DatabaseCollection(list):
         return obj
     
     def to_json(self):
-        """ Returns the json string of the database object in utf-8 """
-        return json.dumps(self, encoding="utf-8")
+        """
+        Returns the json string of the database collection in utf-8.
+        
+        Note: ObjectId and datetime.datetime objects are custom-serialized
+        using the MongoliaJSONEncoder because they are not natively json-
+        serializable.
+        """
+        return json.dumps(self, cls=MongoliaJSONEncoder, encoding="utf-8")
     
     def _move(self, new_path):
         """
