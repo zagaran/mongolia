@@ -34,14 +34,14 @@ if sys.version < '2.5':
 
 setup(
     name = "mongolia",
-    version = "0.5.2",
+    version = "0.5.3",
     packages = find_packages(),
     
     author = "Zagaran, Inc.",
     author_email = "zags at zagaran.com",
     description = "An interface between mongodb and basic python data structures",
     license = "MIT",
-    keywords = "mongo mongodb database interface dictionary collection",
+    keywords = "mongo mongodb database python interface dictionary collection",
     url = "https://github.com/zagaran/mongolia",
     install_requires = ["pymongo >= 3.0", "unittest2>=1.1.0"],
     classifiers = [
