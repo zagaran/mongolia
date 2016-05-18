@@ -94,9 +94,11 @@ class DatabaseCollection(list):
         @param query: a dictionary specifying key-value pairs that the result
             must match.  If query is None, use kwargs in it's place
         @param sort_by: a key to use for the sort order of the results; ID_KEY
-            by default
+            by default. Can also be a list of pairs [(key, direction), ...], as
+            in pymongo's sort function.
         @param ascending: whether to sort the results in ascending order of
-            the sort_by key (if True) or descending order (if False)
+            the sort_by key (if True) or descending order (if False). Ignored if
+            sort_by is a list.
         @param page: the page number of results to return if pagination is
             being uses; note that if page_size is None, this parameter is
             ignored; page is 0-indexed
@@ -126,7 +128,10 @@ class DatabaseCollection(list):
             self.PATH = path
         if not query:
             query = kwargs
-        results = self.db().find(query).sort(sort_by, ASCENDING if ascending else DESCENDING)
+        if isinstance(sort_by, list):
+            results = self.db().find(query).sort(sort_by)
+        else:
+            results = self.db().find(query).sort(sort_by, ASCENDING if ascending else DESCENDING)
         if page_size:
             results.limit(page_size).skip(page_size * page)
         if field:
