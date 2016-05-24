@@ -65,7 +65,8 @@ class DatabaseCollection(list):
     PATH = None
     
     def __init__(self, path=None, objtype=None, query=None, sort_by=ID_KEY, ascending=True,
-                 page=0, page_size=None, read_only=False, field=None, **kwargs):
+                 page=0, page_size=None, read_only=False, projection=None, field=None,
+                 **kwargs):
         """
         Loads a list of DatabaseObjects from path matching query.  If nothing
         matches the query (possibly because there is nothing in the specified
@@ -95,10 +96,11 @@ class DatabaseCollection(list):
             must match.  If query is None, use kwargs in it's place
         @param sort_by: a key to use for the sort order of the results; ID_KEY
             by default. Can also be a list of pairs [(key, direction), ...], as
-            in pymongo's sort function.
+            in pymongo's sort function. If set to None, no sort operation is
+            applied.
         @param ascending: whether to sort the results in ascending order of
             the sort_by key (if True) or descending order (if False). Ignored if
-            sort_by is a list.
+            sort_by is a list or None.
         @param page: the page number of results to return if pagination is
             being uses; note that if page_size is None, this parameter is
             ignored; page is 0-indexed
@@ -110,13 +112,18 @@ class DatabaseCollection(list):
             returned objects are immutable, but in the sense that they have no
             attached .save() methods, so there is no way to write modifications
             to them back to the database.
+        @param projection: specifies fields to return in a projection query. May
+            be a list of field names, in which case the ID_KEY field is always
+            returned whether or not listed. To prevent ID_KEY from being
+            included, use a dict instead (see pymongo documentation for
+            projection queries). Specifying this field implies read_only.
         @param field: returns simply the indicated field for each object
             rather than the entire object.  For example, if ID_KEY is passed in
             for this parameter, only the ID's of the collection are returned,
             not the entire contents.  This behaves similarly to read_only
             in that the returned objects cannot be saved to the database if
             they are updated.  Objects that do not have the indicated field
-            are omitted from results.
+            are omitted from results. Do not combine with the projection parameter.
         @param **kwargs: used as query parameters if query is None
         
         @raise Exception: if path, self.PATH, and self.OBJTYPE.PATH are all
@@ -128,10 +135,18 @@ class DatabaseCollection(list):
             self.PATH = path
         if not query:
             query = kwargs
+        if field:
+            if field == ID_KEY:
+                projection = [ID_KEY]
+            else:
+                projection = {field: True, ID_KEY: False}
+        if projection:
+            read_only = True
+        results = self.db().find(query, projection=projection)    
         if isinstance(sort_by, list):
-            results = self.db().find(query).sort(sort_by)
-        else:
-            results = self.db().find(query).sort(sort_by, ASCENDING if ascending else DESCENDING)
+            results = results.sort(sort_by)
+        elif sort_by:
+            results = results.sort(sort_by, ASCENDING if ascending else DESCENDING)
         if page_size:
             results.limit(page_size).skip(page_size * page)
         if field:
