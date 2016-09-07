@@ -9,6 +9,8 @@ It can be installed by pip:
 pip install mongolia
 ```
 
+The README that follows is a tutorial for the library.  See the doc strings on the classes and functions themselves for the complete documentation.
+
 # Connecting to Your Database
 
 Connecting to mongolia is simple:
