@@ -29,12 +29,12 @@ import sys
 from setuptools import setup, find_packages
 
 if sys.version < '2.5':
-    print "ERROR: python version 2.5 or higher is required"
+    print("ERROR: python version 2.5 or higher is required")
     sys.exit(1)
 
 setup(
     name = "mongolia",
-    version = "0.5.5",
+    version = "0.5.6",
     packages = find_packages(),
     
     author = "Zagaran, Inc.",
