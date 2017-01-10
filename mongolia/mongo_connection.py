@@ -25,7 +25,7 @@ THE SOFTWARE.
 """
 
 from pymongo import MongoClient
-from pymongo.errors import AutoReconnect, ConnectionFailure
+from pymongo.errors import AutoReconnect, ConnectionFailure, ServerSelectionTimeoutError
 from mongolia.errors import DatabaseIsDownError
 from mongolia.constants import TEST_DATABASE_NAME
 
@@ -67,7 +67,7 @@ class MongoConnection(object):
             Takes arguments identical to MongoClient.__init__"""
         try:
             self.__connection = MongoClient(host=host, port=port, connect=connect, **kwargs)
-        except (AutoReconnect, ConnectionFailure):
+        except (AutoReconnect, ConnectionFailure, ServerSelectionTimeoutError):
             raise DatabaseIsDownError("No mongod process is running.")
     
     def authenticate(self, username, password, db=None):
