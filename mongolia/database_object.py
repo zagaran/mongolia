@@ -124,7 +124,6 @@ class DatabaseObject(dict):
             dict.__setattr__(self, "DEFAULTS", defaults)
         if self.PATH == CHILD_TEMPLATE:
             raise TemplateDatabaseError()
-        dict.__setattr__(self, "_collection", self.db(self.PATH))
         if _new_object is not None:
             dict.__init__(self, _new_object)
             return
@@ -324,6 +323,10 @@ class DatabaseObject(dict):
     def __dir__(self):
         return sorted(set(dir(type(self)) + self.keys()))
     
+    @property
+    def _collection(self):
+        return self.db(self.PATH)
+
     def _pre_save(self):
         if not self._exists:
             raise NonexistentObjectError("The object does not exist")
@@ -400,10 +403,13 @@ class DatabaseObject(dict):
             del data[ID_KEY]
             return self.create(data, random_id=True, path=self.PATH)
 
-    def update(self, update_dict=None, **kwargs):
+    def update(self, update_dict=None, raw=False, **kwargs):
         """
         Applies updates both to the database object and to the database via the
-        mongo update method with the $set argument.
+        mongo update method with the $set argument.  Use the `raw` keyword to
+        perform an arbitrary mongo update query.
+        
+        WARNING: Raw updates do not perform type checking.
         
         WARNING: While the update operation itself is atomic, it is not atomic
         with loads and modifications to the object.  You must provide your own
@@ -415,14 +421,22 @@ class DatabaseObject(dict):
         was held in memory.
         
         @param update_dict: dictionary of updates to apply
+        @param raw: if set to True, uses the contents of update_dict directly
+            to perform the update rather than wrapping them in $set.
         @param **kwargs: used as update_dict if no update_dict is None
         """
         if update_dict is None:
             update_dict = kwargs
-        for key, value in update_dict.items():
-            self._check_type(key, value)
-        dict.update(self, update_dict)
-        self.db(self.PATH).update_one({ID_KEY: self[ID_KEY]}, {SET: update_dict})
+        if raw:
+            self._collection.update_one({ID_KEY: self[ID_KEY]}, update_dict)
+            new_data = self._collection.find_one({ID_KEY: self[ID_KEY]})
+            dict.clear(self)
+            dict.update(self, new_data)
+        else:
+            for key, value in update_dict.items():
+                self._check_type(key, value)
+            dict.update(self, update_dict)
+            self._collection.update_one({ID_KEY: self[ID_KEY]}, {SET: update_dict})
     
     def to_json(self):
         """
