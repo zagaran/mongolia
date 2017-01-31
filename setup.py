@@ -38,7 +38,6 @@ setup(
     packages = find_packages(),
     
     author = "Zagaran, Inc.",
-    author_email = "zags at zagaran.com",
     description = "An interface between mongodb and basic python data structures",
     license = "MIT",
     keywords = "mongo mongodb database python interface dictionary collection",
