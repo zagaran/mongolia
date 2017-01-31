@@ -11,6 +11,8 @@ pip install mongolia
 
 The README that follows is a tutorial for the library.  See the doc strings on the classes and functions themselves for the complete documentation.
 
+For inquiries and customizations, email info[at]zagaran.com
+
 # Connecting to Your Database
 
 Connecting to mongolia is simple:
