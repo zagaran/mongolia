@@ -26,6 +26,7 @@ THE SOFTWARE.
 
 import collections
 import json
+from past.builtins import basestring
 
 from logging import log, WARN
 from mongolia.constants import (ID_KEY, CHILD_TEMPLATE, UPDATE, SET,
@@ -39,23 +40,23 @@ from mongolia.mongo_connection import CONNECTION, AlertLevel
 class DatabaseObject(dict):
     """
     Represent a MongoDB object as a Python dictionary.
-        
+
     PATH is the database path in the form "database.collection"; children
         classes of DatabaseObject should override this attribute.
         PATH is what specifies which collection in mongo an item is stored in.
         PATH SHOULD BE UNIQUE FOR EACH CHILD OF DatabaseObject.
         IF TWO DatabaseObjects ARE CREATED WITH THE SAME PATH, THEIR DATA
         WILL BE STORED IN THE SAME COLLECTION.
-    
+
     DEFAULTS is a dictionary of default values for keys of the dict;
         defaults can be functions; REQUIRED is a special value for a key that
         raises a MalformedObjectError if that key isn't in the dict at save
         time; ; children classes of DatabaseObject can optionally override
         this attribute
-    
-    
+
+
     Child Class Example:
-    
+
     class User(DatabaseObject):
         PATH = "application.users"
         DEFAULTS = {
@@ -64,7 +65,7 @@ class DatabaseObject(dict):
             "time_created": datetime.now,
             "name": "anonymous"
         }
-        
+
     __getattr__, __setattr__, and __delattr__ have been overridden to behave
     as item accessors.  This means that you can access elements in the
     DatabaseObject by either database_object["key"] or database_object.key;
@@ -75,12 +76,12 @@ class DatabaseObject(dict):
     gives lookup preference to the .copy() method.  Mostly, the ability to
     use the attribute access is for convenience when interacting with
     DatabaseObjects in an interactive python shell.
-    
+
     """
     PATH = None
     DEFAULTS = {}
     _exists = True
-    
+
     def __init__(self, query=None, path=None, defaults=None, _new_object=None, **kwargs):
         """
         Loads a single database object from path matching query.  If nothing
@@ -88,15 +89,15 @@ class DatabaseObject(dict):
         mongo collection), the created DatabaseObject will be an empty
         dictionary and have bool(returned object) == False.  If more than one
         database object matches the query, a DatabaseConflictError is thrown.
-        
+
         NOTE: The path and defaults parameters to this function are to allow
         use of the DatabaseObject class directly.  However, this class is
         intended for subclassing and children of it should override the PATH
         and DEFAULTS attributes rather than passing them as parameters here.
-        
+
         NOTE: if you pass in a single argument to __init__, this will
         match against ID_KEY.
-        
+
         @param query: a dictionary specifying key-value pairs that the result
             must match.  If query is None, use kwargs in it's place
         @param path: the path of the database to query, in the form
@@ -106,7 +107,7 @@ class DatabaseObject(dict):
             pass None to use the DEFAULTS property of the object
         @param _new_object: internal use only
         @param **kwargs: used as query parameters if query is None
-        
+
         @raise Exception: if path and self.PATH are None; the database path
             must be defined in at least one of these
         @raise TemplateDatabaseError: if PATH is CHILD_TEMPLATE; this
@@ -140,23 +141,23 @@ class DatabaseObject(dict):
                 dict.__init__(self, result)
                 return
         dict.__setattr__(self, "_exists", False)
-    
+
     @classmethod
     def exists(cls, query=None, path=None, **kwargs):
         """
         Like __init__ but simply returns a boolean as to whether or not the
         object exists, rather than returning the whole object.
-        
+
         NOTE: if you pass in a single argument to exists, this will
         match against ID_KEY.
-        
+
         @param query: a dictionary specifying key-value pairs that the result
             must match.  If query is None, use kwargs in it's place
         @param path: the path of the database to query, in the form
             "database.colletion"; pass None to use the value of the
             PATH property of the object
         @param **kwargs: used as query parameters if query is None
-        
+
         @raise Exception: if path and self.PATH are None; the database path
             must be defined in at least one of these
         """
@@ -165,18 +166,18 @@ class DatabaseObject(dict):
         if query is None:
             return False
         return cls.db(path).find_one(query) is not None
-    
+
     @classmethod
     def create(cls, data, path=None, defaults=None, overwrite=False,
                random_id=False, **kwargs):
         """
         Creates a new database object and stores it in the database
-        
+
         NOTE: The path and defaults parameters to this function are to allow
         use of the DatabaseObject class directly.  However, this class is
         intended for subclassing and children of it should override the PATH
         and DEFAULTS attributes rather than passing them as parameters here.
-        
+
         @param data: dictionary of data that the object should be created with;
             this must follow all mongo rules, as well as have an entry for
             ID_KEY unless random_id == True
@@ -189,7 +190,7 @@ class DatabaseObject(dict):
         @param random_id: stores the new object with a random value for ID_KEY;
             overwrites data[ID_KEY]
         @param **kwargs: ignored
-        
+
         @raise Exception: if path and self.PATH are None; the database path
             must be defined in at least one of these
         @raise DatabaseConflictError: if there is already an object with that
@@ -218,22 +219,22 @@ class DatabaseObject(dict):
             insert_result = self._collection.insert_one(dict(self))
             dict.__setitem__(self, ID_KEY, insert_result.inserted_id)
         return self
-    
+
     @classmethod
     def create_from_json(cls, json_str, ignore_non_defaults=True):
         """
         Creates a database object from a json object.  The intent of this method
         is to allow creating a database object directly from json.
-        
+
         Mongolia will also automatically convert any json values that are
         formatted using the MongoliaJSONEncoder (for ObjectIds and datetime
         objects) back to their native python data types.
-        
+
         Note: if using AngularJS, make sure to pass json back using
         `angular.toJson(obj)` instead of `JSON.stringify(obj)` since angular
         sometimes adds `$$hashkey` to javascript objects and this will cause
         a mongo error due to the "$" prefix in keys.
-        
+
         @param json_str: the json string containing the new object to use for
             creating the new object
         @param ignore_non_defaults: if this is True and the database object
@@ -245,19 +246,19 @@ class DatabaseObject(dict):
         if cls.DEFAULTS and ignore_non_defaults:
             for key in frozenset(create_dict).difference(frozenset(cls.DEFAULTS)):
                 del create_dict[key]
-        
+
         cls.create(create_dict, random_id=True)
-    
+
     @classmethod
     def db(cls, path=None):
         """
         Returns a pymongo Collection object from the current database connection.
         If the database connection is in test mode, collection will be in the
         test database.
-        
+
         @param path: if is None, the PATH attribute of the current class is used;
             if is not None, this is used instead
-        
+
         @raise Exception: if neither cls.PATH or path are valid
         """
         if cls.PATH is None and path is None:
@@ -271,7 +272,7 @@ class DatabaseObject(dict):
             return CONNECTION.get_connection()[TEST_DATABASE_NAME][path]
         (db, coll) = path.split('.', 1)
         return CONNECTION.get_connection()[db][coll]
-    
+
     def __getitem__(self, key):
         if not self._exists:
             raise NonexistentObjectError("The object does not exist")
@@ -288,7 +289,7 @@ class DatabaseObject(dict):
                                        (key, type(self).__name__))
         dict.__setitem__(self, key, new)
         return new
-    
+
     def __setitem__(self, key, value):
         if not self._exists:
             raise NonexistentObjectError("The object does not exist")
@@ -301,7 +302,7 @@ class DatabaseObject(dict):
             self._handle_non_default_key(key, value)
         self._check_type(key, value)
         dict.__setitem__(self, key, value)
-    
+
     def __delitem__(self, key):
         if not self._exists:
             raise NonexistentObjectError("The object does not exist")
@@ -310,19 +311,19 @@ class DatabaseObject(dict):
             raise KeyError("Do not delete '%s' directly; use rename() instead" % ID_KEY)
         if key in self:
             dict.__delitem__(self, key)
-    
+
     def __getattr__(self, key):
         return self[key]
-    
+
     def __setattr__(self, key, val):
         self[key] = val
-        
+
     def __delattr__(self, key):
         del self[key]
-    
+
     def __dir__(self):
         return sorted(set(dir(type(self)) + self.keys()))
-    
+
     @property
     def _collection(self):
         return self.db(self.PATH)
@@ -336,48 +337,48 @@ class DatabaseObject(dict):
                 self[key]
             except KeyError:
                 pass
-    
+
     def save(self):
         """
         Saves the current state of the DatabaseObject to the database.  Fills
         in missing values from defaults before saving.
-        
+
         NOTE: The actual operation here is to overwrite the entry in the
         database with the same ID_KEY.
-        
+
         WARNING: While the save operation itself is atomic, it is not atomic
         with loads and modifications to the object.  You must provide your own
         synchronization if you have multiple threads or processes possibly
         modifying the same database object.  The update method is better from
         a concurrency perspective.
-        
+
         @raise MalformedObjectError: if the object does not provide a value
             for a REQUIRED default
         """
         self._pre_save()
         self._collection.replace_one({ID_KEY: self[ID_KEY]}, dict(self))
-    
+
     def rename(self, new_id):
         """
         Renames the DatabaseObject to have ID_KEY new_id.  This is the only
         way allowed by DatabaseObject to change the ID_KEY of an object.
         Trying to modify ID_KEY in the dictionary will raise an exception.
-        
+
         @param new_id: the new value for ID_KEY
-        
+
         NOTE: This is actually a create and delete.
-        
+
         WARNING: If the system fails during a rename, data may be duplicated.
         """
         old_id = dict.__getitem__(self, ID_KEY)
         dict.__setitem__(self, ID_KEY, new_id)
         self._collection.save(self)
         self._collection.remove({ID_KEY: old_id})
-    
+
     def remove(self):
         """
         Deletes the object from the database
-        
+
         WARNING: This cannot be undone.  Be really careful when deleting
         programatically.  It is recommended to backup your database before
         applying specific deletes.  If your application uses deletes regularly,
@@ -385,11 +386,11 @@ class DatabaseObject(dict):
         """
         self._collection.remove({ID_KEY: self[ID_KEY]})
         dict.clear(self)
-    
+
     def copy(self, new_id=None, attribute_overrides={}):
         """
         Copies the DatabaseObject under the ID_KEY new_id.
-        
+
         @param new_id: the value for ID_KEY of the copy; if this is none,
             creates the new object with a random ID_KEY
         @param attribute_overrides: dictionary of attribute names -> values that you would like to override with.
@@ -408,9 +409,9 @@ class DatabaseObject(dict):
         Applies updates both to the database object and to the database via the
         mongo update method with the $set argument.  Use the `raw` keyword to
         perform an arbitrary mongo update query.
-        
+
         WARNING: Raw updates do not perform type checking.
-        
+
         WARNING: While the update operation itself is atomic, it is not atomic
         with loads and modifications to the object.  You must provide your own
         synchronization if you have multiple threads or processes possibly
@@ -419,7 +420,7 @@ class DatabaseObject(dict):
         as it only updates keys specified in the update_dict, it will still
         overwrite updates to those same keys that were made while the object
         was held in memory.
-        
+
         @param update_dict: dictionary of updates to apply
         @param raw: if set to True, uses the contents of update_dict directly
             to perform the update rather than wrapping them in $set.
@@ -437,32 +438,32 @@ class DatabaseObject(dict):
                 self._check_type(key, value)
             dict.update(self, update_dict)
             self._collection.update_one({ID_KEY: self[ID_KEY]}, {SET: update_dict})
-    
+
     def to_json(self):
         """
         Returns the json string of the database object in utf-8.
-        
+
         Note: ObjectId and datetime.datetime objects are custom-serialized
         using the MongoliaJSONEncoder because they are not natively json-
         serializable.
         """
         return json.dumps(self, cls=MongoliaJSONEncoder, encoding="utf-8")
-    
+
     def json_update(self, json_str, exclude=[], ignore_non_defaults=True):
         """
         Updates a database object based on a json object.  The intent of this
         method is to allow passing json to an interface which then subsequently
         manipulates the object and then sends back an update.
-        
+
         Mongolia will also automatically convert any json values that were
         initially converted from ObjectId and datetime.datetime objects back
         to their native python object types.
-        
+
         Note: if using AngularJS, make sure to pass json back using
         `angular.toJson(obj)` instead of `JSON.stringify(obj)` since angular
         sometimes adds `$$hashkey` to javascript objects and this will cause
         a mongo error due to the "$" prefix in keys.
-        
+
         @param json_str: the json string containing the new object to use for
             the update
         @param exclude: a list of top-level keys to exclude from the update
@@ -476,34 +477,34 @@ class DatabaseObject(dict):
         # Remove ID_KEY since it can't be part of a mongo update operation
         if ID_KEY in update_dict:
             del update_dict[ID_KEY]
-        
+
         # Remove all keys in the exclude list from the update
         for key in frozenset(exclude).intersection(frozenset(update_dict)):
             del update_dict[key]
-        
+
         # Remove all keys not in DEFAULTS if ignore_non_defaults is True
         if self.DEFAULTS and ignore_non_defaults:
             for key in frozenset(update_dict).difference(frozenset(self.DEFAULTS)):
                 del update_dict[key]
-        
+
         self.update(update_dict)
-    
+
     def json_update_fields(self, json_str, fields_to_update):
         """
         Updates the specified fields of a database object based on a json
         object. The intent of this method is to allow passing json to an
         interface which then subsequently manipulates the object and then sends
         back an update for specific fields of the object.
-        
+
         Mongolia will also automatically convert any json values that were
         initially converted from ObjectId and datetime.datetime objects back
         to their native python object types.
-        
+
         Note: if using AngularJS, make sure to pass json back using
         `angular.toJson(obj)` instead of `JSON.stringify(obj)` since angular
         sometimes adds `$$hashkey` to javascript objects and this will cause
         a mongo error due to the "$" prefix in keys.
-        
+
         @param json_str: the json string containing the new object to use for
             the update
         @param fields_to_update: a list of the top-level keys to update; only
@@ -514,7 +515,7 @@ class DatabaseObject(dict):
         update_dict = dict((k, v) for k, v in update_dict.items()
                        if k in fields_to_update and k != ID_KEY)
         self.update(update_dict)
-    
+
     def _get_from_defaults(self, key):
         # If a KeyError is raised here, it is because the key is found in
         # neither the database object nor the DEFAULTS
@@ -534,7 +535,7 @@ class DatabaseObject(dict):
         if isinstance(default, dict):
             default = dict(default)
         return default
-    
+
     def _handle_non_default_key(self, key, value):
         # There is an attempt to set a key not in DEFAULTS
         if CONNECTION.defaults_handling == AlertLevel.error:
@@ -542,7 +543,7 @@ class DatabaseObject(dict):
                                   (key, type(self).__name__))
         elif CONNECTION.defaults_handling == AlertLevel.warning:
             log(WARN, "%s not in DEFAULTS for %s" % (key, type(self).__name__))
-    
+
     def _check_type(self, key, value, warning_only=False):
         # Check the type of the object against the type in DEFAULTS
         if not self.DEFAULTS or key not in self.DEFAULTS:
@@ -561,7 +562,7 @@ class DatabaseObject(dict):
             # Handle special keys, including a REQUIRED_TYPE default
             # (which was checked above)
             return
-        
+
         if CONNECTION.type_checking == AlertLevel.none:
             # Shortcut return if type checking is disabled
             return
@@ -580,7 +581,7 @@ class DatabaseObject(dict):
             raise InvalidTypeError(message)
         elif CONNECTION.type_checking == AlertLevel.warning:
             log(WARN, message)
-    
+
     @staticmethod
     def _get_type(default):
         for type_ in TYPES_TO_CHECK:

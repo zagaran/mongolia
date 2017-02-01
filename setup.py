@@ -24,6 +24,7 @@ THE SOFTWARE.
 @author: Zags (Benjamin Zagorsky)
 """
 
+
 import sys
 
 from setuptools import setup, find_packages
@@ -33,23 +34,29 @@ if sys.version < '2.5':
     sys.exit(1)
 
 setup(
-    name = "mongolia",
-    version = "0.5.8",
-    packages = find_packages(),
-    
-    author = "Zagaran, Inc.",
-    description = "An interface between mongodb and basic python data structures",
-    license = "MIT",
-    keywords = "mongo mongodb database python interface dictionary collection",
-    url = "https://github.com/zagaran/mongolia",
-    install_requires = ["pymongo >= 3.0", "unittest2>=1.1.0"],
-    classifiers = [
-                 "Development Status :: 4 - Beta",
-                 "License :: OSI Approved :: MIT License",
-                 "Operating System :: MacOS :: MacOS X",
-                 "Operating System :: Microsoft :: Windows",
-                 "Operating System :: POSIX",
-                 "Programming Language :: Python",
-                 "Topic :: Database",
-                 ],
+    name="mongolia",
+    version="0.5.8",
+    packages=find_packages(),
+    author="Zagaran, Inc.",
+    author_email="zags at zagaran.com",
+    description="An interface between mongodb and basic python data structures",
+    license="MIT",
+    keywords="mongo mongodb database python interface dictionary collection",
+    url="https://github.com/zagaran/mongolia",
+    install_requires=[
+        "pymongo >= 3.0",
+        "unittest2 >= 1.1.0",
+        "python-dateutil >= 2.6.0",
+        "future >= 0.16.0",
+    ],
+    classifiers=[
+        "Development Status :: 4 - Beta",
+        "License :: OSI Approved :: MIT License",
+        "Operating System :: MacOS :: MacOS X",
+        "Operating System :: Microsoft :: Windows",
+        "Operating System :: POSIX",
+        "Programming Language :: Python",
+        "Topic :: Database",
+    ],
 )
+# pylama:ignore=D400
