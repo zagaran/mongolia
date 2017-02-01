@@ -25,6 +25,7 @@ THE SOFTWARE.
 """
 from bson import ObjectId
 from datetime import datetime
+from past.builtins import basestring
 
 """ Special key required by mongo for all DatabaseObjects; uniquely
     identifies DatabaseObjects """

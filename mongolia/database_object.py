@@ -28,6 +28,7 @@ import collections
 import json
 
 from logging import log, WARN
+from past.builtins import basestring
 from mongolia.constants import (ID_KEY, CHILD_TEMPLATE, UPDATE, SET,
     REQUIRED_VALUES, REQUIRED_TYPES, TYPES_TO_CHECK, TEST_DATABASE_NAME)
 from mongolia.errors import (TemplateDatabaseError, MalformedObjectError,
