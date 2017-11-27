@@ -550,7 +550,7 @@ class DatabaseObject(dict):
             # If the key is not in defaults, there is nothing to compare to
             return
         default = self.DEFAULTS[key]
-        if default in REQUIRED_TYPES.keys() and not isinstance(value, REQUIRED_TYPES[default]):
+        if default in list(REQUIRED_TYPES.keys()) and not isinstance(value, REQUIRED_TYPES[default]):
             # Check types of required fields regardless of alert settings
             message = ("value '%s' for key '%s' must be of type %s" %
                        (value, key, REQUIRED_TYPES[default]))
