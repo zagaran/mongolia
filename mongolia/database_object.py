@@ -324,6 +324,8 @@ class DatabaseObject(dict):
     def __dir__(self):
         return sorted(set(dir(type(self)) + self.keys()))
     
+    iteritems = dict.items
+
     @property
     def _collection(self):
         return self.db(self.PATH)
