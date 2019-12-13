@@ -24,11 +24,14 @@ THE SOFTWARE.
 @author: Zags (Benjamin Zagorsky)
 """
 
-import unittest2
+try:
+    import unittest2 as unittest
+except ImportError:
+    import unittest
 import sys
 from mongolia.mongo_connection import set_test_mode, drop_test_database
 
-class MongoliaTestCase(unittest2.TestCase):
+class MongoliaTestCase(unittest.TestCase):
     """ Child class of untitest.TestCase that does the following:
             * Sets the Mongolia connection to test mode before starting
             * Sets the Mongolia connection out of test mode after finishing
