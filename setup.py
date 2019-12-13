@@ -31,6 +31,13 @@ from setuptools import setup, find_packages
 if sys.version < '2.5':
     print("ERROR: python version 2.5 or higher is required")
     sys.exit(1)
+    
+if sys.version < '3.5':
+    version_dependent_requires = [
+        'unittest2>=1.1.0'
+    ]
+else:
+    version_dependent_requires = []
 
 setup(
     name = "mongolia",
@@ -44,9 +51,9 @@ setup(
     url = "https://github.com/zagaran/mongolia",
     install_requires = [
         "pymongo >= 3.0",
-        "unittest2>=1.1.0",
         "python-dateutil >= 2.6.0",
         "future >= 0.16.0",
+        *version_dependent_requires
     ],
     classifiers = [
         "Development Status :: 4 - Beta",
