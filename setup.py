@@ -53,8 +53,7 @@ setup(
         "pymongo >= 3.0",
         "python-dateutil >= 2.6.0",
         "future >= 0.16.0",
-        *version_dependent_requires
-    ],
+    ] + version_dependent_requires,
     classifiers = [
         "Development Status :: 4 - Beta",
         "License :: OSI Approved :: MIT License",
