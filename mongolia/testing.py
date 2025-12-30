@@ -24,10 +24,7 @@ THE SOFTWARE.
 @author: Zags (Benjamin Zagorsky)
 """
 
-try:
-    import unittest2 as unittest
-except ImportError:
-    import unittest
+import unittest
 import sys
 from mongolia.mongo_connection import set_test_mode, drop_test_database
 

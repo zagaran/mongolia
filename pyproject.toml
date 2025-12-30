@@ -1,0 +1,43 @@
+[build-system]
+requires = ["setuptools>=61.2"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mongolia"
+version = "0.7.0"
+authors = [{name = "Zagaran, Inc.", email = "info@zagaran.com"}]
+license = "MIT"
+description = "An interface between mongodb and basic python data structures"
+keywords = [
+    "mongo",
+    "mongodb",
+    "database",
+    "python",
+    "interface",
+    "dictionary",
+    "collection",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Operating System :: MacOS :: MacOS X",
+    "Operating System :: Microsoft :: Windows",
+    "Operating System :: POSIX",
+    "Programming Language :: Python",
+    "Topic :: Database",
+]
+urls = {Homepage = "https://github.com/zagaran/mongolia"}
+requires-python = ">=3.6"
+dependencies = [
+    "pymongo >= 3.0",
+    "python-dateutil >= 2.6.0",
+]
+
+[project.readme]
+file = "README.md"
+content-type = "text/markdown"
+
+[tool.setuptools]
+include-package-data = false
+
+[tool.setuptools.packages]
+find = {namespaces = false}
